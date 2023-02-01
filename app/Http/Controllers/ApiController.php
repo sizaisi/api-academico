@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ApiController extends Controller
 {
     public function cantidad_concepto_certificado(Request $request)
-    {       
+    {   
         if (!isset($request->cui) || !isset($request->nues)) {       
             return array('success' => false, 'message' => 'Debe ingresar los argumentos cui y nues');       
         }
