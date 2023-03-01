@@ -80,4 +80,81 @@ class ApiController extends Controller
             return array('success' => true, 'data' => $cantidad_pagos_por_concepto);
         }
     }
+
+    public function anio_primera_mat_egresado(Request $request)
+    {
+        if (!isset($request->cui) || !isset($request->nues)) {       
+            return array('success' => false, 'message' => 'Debe ingresar los argumentos cui y nues');       
+        }
+        else if (!intval($request->cui) || !intval($request->nues)) {
+            return array('success' => false, 'message' => 'Los argumentos cui y nues deben ser números');
+        }
+        else if (strlen($request->cui) != 8 || strlen($request->nues) != 3) {        
+            return array('success' => false, 'message' => 'El argumento cui debe tener 8 dígitos y el argumento nues debe tener 3 dígitos');        
+        }
+        $cui = $request->cui;
+        $nues = $request->nues;
+        $espe = $request->espe? $request->espe : 0 ;
+        /************************* FECHA DE PRIMERA MATRICULA *********************/
+        $sql = "select fecha as fecha_matricula from SIAC_MATR_PRIM where cui='$cui' and nues='$nues' and espe='$espe'";
+        $fecha_primera_matricula = \DB::connection('mysql')->select($sql); 
+
+        if (empty($fecha_primera_matricula)) {
+            $sql3="SELECT MIN(fdig) as fecha_matricula
+                    FROM
+                    (
+                        SELECT * FROM acdl$nues WHERE cui='$cui'
+                        UNION
+                        SELECT * FROM acdh$nues WHERE cui='$cui'
+                    ) as tabla
+                    WHERE SUBSTRING(casi,4,1)=1
+                    AND anoh = (SELECT min(anoh)
+                    FROM (SELECT anoh FROM acdl$nues WHERE cui='$cui'
+                        UNION
+                        SELECT anoh FROM acdh$nues WHERE cui='$cui'
+                        ) as subtabla
+            )
+                    AND anoh >= 1995 AND fdig<>''";
+
+            $fecha_primera_matricula = \DB::connection('mysql')->select($sql3);                 
+        }
+        if($fecha_primera_matricula[0]){
+            $fecha_primera_matricula = substr($fecha_primera_matricula[0]->fecha_matricula,6,2) . '-' .
+                                        substr($fecha_primera_matricula[0]->fecha_matricula,4,2) . '-' .
+                                        substr($fecha_primera_matricula[0]->fecha_matricula,0,4);
+        }
+        /**************************************************************************/
+        /******************************** FECHA DE EGRESO *************************/               
+        $acdlnues = 'acdl' . $nues;
+        $acdhnues = 'acdh' . $nues;
+        $sql2 = "SELECT DATE_FORMAT(MAX(fech), '%d-%m-%Y') AS max_fecha_evaluacion
+                         FROM ( SELECT * 
+                                FROM $acdlnues 
+                                WHERE cui='$cui' 
+                                UNION 
+                                SELECT * 
+                                FROM $acdhnues
+                                WHERE cui='$cui' ) as tabla 
+                         WHERE anoh = (
+                                SELECT max(anoh) 
+                                FROM (SELECT anoh 
+                                        FROM $acdlnues
+                                        WHERE cui='$cui' 
+                                        UNION 
+                                      SELECT anoh 
+                                      FROM $acdhnues
+                                      WHERE cui='$cui') as subtabla ) 
+                          AND fech <> ''";
+
+        $fecha_egreso = \DB::connection('mysql')->select($sql2);
+        if($fecha_egreso[0]){
+            $fecha_egreso = $fecha_egreso[0]->max_fecha_evaluacion;
+        }
+        /**************************************************************************/
+
+        $fecha['primera_mat'] = $fecha_primera_matricula;
+        $fecha['egreso'] = $fecha_egreso;
+
+        return array('success' => true, 'data' => $fecha);
+    }
 }

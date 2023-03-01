@@ -18,7 +18,8 @@
 }); */
 
 
-$router->post('/', ['uses' => 'ApiController@cantidad_concepto_certificado', 'as' => 'certificado']);
+$router->post('/certificados', ['uses' => 'ApiController@cantidad_concepto_certificado', 'as' => 'certificado']);
+$router->post('/fechas', ['uses' => 'ApiController@anio_primera_mat_egresado', 'as' => 'fechas']);
 
 
 $router->group(['prefix' => 'api'], function () use ($router) {
