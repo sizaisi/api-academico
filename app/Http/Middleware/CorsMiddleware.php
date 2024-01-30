@@ -14,25 +14,40 @@ class CorsMiddleware
      */
     public function handle($request, Closure $next)
     {
-        $headers = [
-            'Access-Control-Allow-Origin'      => 'https://ouis.unsa.edu.pe',
-            'Access-Control-Allow-Methods'     => 'POST, GET, OPTIONS, PUT, DELETE',
-            'Access-Control-Allow-Credentials' => 'true',
-            'Access-Control-Max-Age'           => '86400',
-            'Access-Control-Allow-Headers'     => 'Content-Type, Authorization, X-Requested-With'
-        ];
-
         if ($request->isMethod('OPTIONS'))
         {
             return response()->json('{"method":"OPTIONS"}', 200, $headers);
         }
 
-        $response = $next($request);
-        foreach($headers as $key => $value)
-        {
-            $response->header($key, $value);
+        // List of allowed origins
+        $allowedOrigins = [
+            'https://ouis.unsa.edu.pe',
+            'https://sg.unsa.edu.pe',
+            // Add more origins as needed
+        ];
+
+        $origin = $request->header('Origin');
+
+        if (in_array($origin, $allowedOrigins)) {
+            $headers = [
+                'Access-Control-Allow-Origin'      => $origin,
+                'Access-Control-Allow-Methods'     => 'POST, GET, OPTIONS, PUT, DELETE',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Max-Age'           => '86400',
+                'Access-Control-Allow-Headers'     => 'Content-Type, Authorization, X-Requested-With'
+            ];
+
+            $response = $next($request);
+
+            foreach($headers as $key => $value)
+            {
+                $response->header($key, $value);
+            }
+
+            return $response;
         }
 
-        return $response;
+        // Deny access for disallowed origins
+        return response('Unauthorized', 401);
     }
 }
