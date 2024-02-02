@@ -94,7 +94,7 @@ class ApiController extends Controller
         }
         $cui = $request->cui;
         $nues = $request->nues;
-        $espe = $request->espe? $request->espe : 0 ;
+        $espe = $request->espe? $request->espe : 0;
         /************************* FECHA DE PRIMERA MATRICULA *********************/
         $sql = "select fecha as fecha_matricula from SIAC_MATR_PRIM where cui='$cui' and nues='$nues' and espe='$espe'";
         $fecha_primera_matricula = \DB::connection('mysql')->select($sql); 
@@ -156,5 +156,59 @@ class ApiController extends Controller
         $fecha['egreso'] = $fecha_egreso;
 
         return array('success' => true, 'data' => $fecha);
+    }
+
+    public function fecha_primera_mat_egreso_creditos_posgrado(Request $request)
+    {
+        if (!isset($request->cui) || !isset($request->nues)) {       
+            return array('success' => false, 'message' => 'Debe ingresar los argumentos cui y nues');       
+        }
+        else if (!intval($request->cui) || !intval($request->nues)) {
+            return array('success' => false, 'message' => 'Los argumentos cui y nues deben ser números');
+        }
+        else if (strlen($request->cui) != 8 || strlen($request->nues) != 3) {        
+            return array('success' => false, 'message' => 'El argumento cui debe tener 8 dígitos y el argumento nues debe tener 3 dígitos');        
+        }
+        $cui = $request->cui;
+        $nues = $request->nues;
+        $espe = $request->espe;
+        /************************* FECHA DE PRIMERA MATRICULA *********************/
+        $sql = "select fecha as fecha_matricula from SIAC_MATR_PRIM where cui='$cui' and nues='$nues' and espe='$espe'";
+        $fecha_primera_matricula = \DB::connection('mysql')->select($sql); 
+        
+        if ($fecha_primera_matricula[0]) {
+            $fecha_primera_matricula = substr($fecha_primera_matricula[0]->fecha_matricula,6,2) . '-' .
+                                        substr($fecha_primera_matricula[0]->fecha_matricula,4,2) . '-' .
+                                        substr($fecha_primera_matricula[0]->fecha_matricula,0,4);
+        }
+        /**************************************************************************************/
+        /******************************** FECHA DE EGRESO  y CREDITOS *************************/               
+        $acdlnues = 'acdl' . $nues;     
+        $sql2 = "SELECT max(fech) AS fecha_egreso, sum(cred) AS creditos 
+                    FROM $acdlnues a INNER JOIN actasig b ON a.casi = b.casi 
+                    WHERE a.cui='$cui' AND b.nues='$nues' 
+                        AND (substring(a.casi,3,1)='$espe' 
+                        OR substring(a.casi,3,1)='0') 
+                        AND (Find_in_Set(a.core, 'A') 
+                        OR (a.nota>=(SELECT nota_apro 
+                                        FROM SIAC_NOTA_APRO 
+                                        WHERE codi_depe=$nues 
+                                        AND nota_anoh=a.anoh 
+                                        AND nota_cicl=a.cicl) 
+                                        AND FIND_IN_SET(a.core,'J,S,C,V')))";
+
+        $fecha_egreso_cred = \DB::connection('mysql')->select($sql2);
+        
+        if ($fecha_egreso_cred[0]) {
+            $fecha_egreso = $fecha_egreso_cred[0]->fecha_egreso;
+            $nro_creditos = $fecha_egreso_cred[0]->creditos;
+        }
+        /**************************************************************************/
+
+        $data['prim_matricula_posgrado'] = $fecha_primera_matricula;
+        $data['fecha_egreso'] = $fecha_egreso;
+        $data['creditos'] = $nro_creditos;
+
+        return array('success' => true, 'data' => $data);
     }
 }
