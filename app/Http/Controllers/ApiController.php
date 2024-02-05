@@ -175,11 +175,14 @@ class ApiController extends Controller
         /************************* FECHA DE PRIMERA MATRICULA *********************/
         $sql = "select fecha as fecha_matricula from SIAC_MATR_PRIM where cui='$cui' and nues='$nues' and espe='$espe'";
         $fecha_primera_matricula = \DB::connection('mysql')->select($sql); 
-        
-        if ($fecha_primera_matricula[0]) {
+
+        if (count($fecha_primera_matricula) != 0) {
             $fecha_primera_matricula = substr($fecha_primera_matricula[0]->fecha_matricula,6,2) . '-' .
-                                        substr($fecha_primera_matricula[0]->fecha_matricula,4,2) . '-' .
-                                        substr($fecha_primera_matricula[0]->fecha_matricula,0,4);
+                                       substr($fecha_primera_matricula[0]->fecha_matricula,4,2) . '-' .
+                                       substr($fecha_primera_matricula[0]->fecha_matricula,0,4);
+        }        
+        else {
+            $fecha_primera_matricula = null;
         }
         /**************************************************************************************/
         /******************************** FECHA DE EGRESO  y CREDITOS *************************/               
