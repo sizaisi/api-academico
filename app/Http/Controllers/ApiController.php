@@ -202,9 +202,15 @@ class ApiController extends Controller
 
         $fecha_egreso_cred = \DB::connection('mysql')->select($sql2);
         
-        if ($fecha_egreso_cred[0]) {
-            $fecha_egreso = $fecha_egreso_cred[0]->fecha_egreso;
+        if (count($fecha_egreso_cred) != 0) {
+            $fecha_egreso = substr($fecha_egreso_cred[0]->fecha_egreso,6,2) . '-' .
+                            substr($fecha_egreso_cred[0]->fecha_egreso,4,2) . '-' .
+                            substr($fecha_egreso_cred[0]->fecha_egreso,0,4);
             $nro_creditos = $fecha_egreso_cred[0]->creditos;
+        }
+        else {
+            $fecha_egreso = null;
+            $nro_creditos = null;
         }
         /**************************************************************************/
 
